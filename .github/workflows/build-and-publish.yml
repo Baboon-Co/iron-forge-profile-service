@@ -1,0 +1,38 @@
+name: Build and Publish
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+
+env:
+  DOCKER_REGISTRY: ghcr.io
+  IMAGE_NAME: baboon-co/iron-forge-profile
+  REGISTRY_IMAGE_NAME: $DOCKER_REGISTRY/$IMAGE_NAME:latest
+
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+      contents: read
+
+    steps:
+      - name: Log into docker registry ${{ env.DOCKER_REGISTRY }}
+        uses: docker/login-action@343f7c4344506bcbf9b4de18042ae17996df046d # v3.0.0
+        with:
+          registry: ${{ env.DOCKER_REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Checkout
+        uses: actions/checkout@v4.1.2
+
+      - name: Build image
+        run: docker build --build-arg NUGET_USERNAME=${{ github.actor }} --build-arg NUGET_PASSWORD=${{ secrets.GITHUB_TOKEN }} -t ${{ env.REGISTRY_IMAGE_NAME }} .
+
+      - name: Push image to registry
+        run: docker push ${{ env.REGISTRY_IMAGE_NAME }}
